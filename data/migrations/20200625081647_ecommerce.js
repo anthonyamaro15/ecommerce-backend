@@ -22,13 +22,13 @@ exports.up = function (knex) {
       .createTable("product", (table) => {
         table.increments();
         table.string("product_name", 255).notNullable();
-        table.string("size", 255).notNullable();
+        //   table.string("size", 255).notNullable();
         table.float("price").notNullable();
         table.string("image_url", 255).notNullable();
         table.string("details", 255).notNullable();
         table.string("type", 255).notNullable();
         table.string("category", 255).notNullable();
-        table.string("color", 255).notNullable();
+        //   table.string("color", 255).notNullable();
       })
       // product_sizes table
       .createTable("product_sizes", (table) => {
