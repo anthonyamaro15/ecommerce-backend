@@ -1,5 +1,4 @@
 const User = require("../schemas/auth_schema");
-const userRestricted = require("../middlewares/userRestricted");
 
 function validateUser(req, res, next) {
   const { first_name, last_name, email, password } = req.body;
@@ -27,7 +26,7 @@ function validateId(req, res, next) {
   User.findById(id)
     .then((user) => {
       if (user) {
-        console.log("here ", user);
+        //   console.log("here ", user);
         next();
       } else {
         res.status(404).json({ errMessage: "Invalid id" });
