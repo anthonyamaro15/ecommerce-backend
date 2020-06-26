@@ -5,14 +5,14 @@ function add(user) {
 }
 
 function findById(id) {
-  return db("users").where({ id });
+  return db("users").where({ id }).first();
 }
 
 function findBy(filter) {
   return db("users").where(filter);
 }
 
-function updateUser(id, changes) {
+async function updateUser(id, changes) {
   return db("users").where({ id }).update(changes);
 }
 

@@ -3,6 +3,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 
 const authRoute = require("../routes/authRoute");
+const userRestricted = require("../middlewares/userRestricted");
 
 const server = express();
 
