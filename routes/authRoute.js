@@ -11,7 +11,7 @@ const { generateToken } = require("../middlewares/generateToken");
 
 const route = express.Router();
 
-// "email": "lisa@example.comn",
+// "email": "lisa@example.com",
 // "password": "lisa1"
 
 // POST /api/auth/register
@@ -20,7 +20,7 @@ route.post("/register", validateUser, (req, res) => {
   const { email } = req.body;
 
   User.findBy({ email }).then((user) => {
-    if (user) {
+    if (user.length > 0) {
       res.status(400).json({ errMessage: "Email already taken" });
     } else {
       const hash = bcrypt.hashSync(credentials.password, 8);
