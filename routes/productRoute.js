@@ -21,32 +21,53 @@ route.post("/account/:id", validateProduct, validateId, (req, res) => {
 });
 
 // POST /api/product/account/:id
-route.post("/account/size/:product_id", (req, res) => {
-  const { product_id } = req.params;
-});
+route.put("/account/:id/:product_id", (req, res) => {
+  const { id, product_id } = req.params;
 
-route.get("/account", (req, res) => {
-  Product.getAll()
-    .then((products) => {
-      let newProducts = convertStrToArr(products);
-      res.status(200).json(newProducts);
+  Product.updateProduct(id, product_id, req.body)
+    .then((product) => {
+      console.log("from routes ", product);
+      res.status(200).json(product);
     })
     .catch((err) => {
-      res.status(400).json({ errMessage: "invalid" });
+      res.status(500).json({ errMessage: "error hreer" });
     });
 });
 
-function convertStrToArr(arr) {
-  const newArr = arr.map((array) => {
-    let arrSize = array.size.split(",");
-    let arrColor = array.color.split(",");
-    return {
-      ...array,
-      size: arrSize,
-      color: arrColor,
-    };
-  });
-  return newArr;
-}
+route.get("/account/:id/:product_id", (req, res) => {
+  const { id, product_id } = req.params;
+
+  Product.findAdminProject(id, product_id)
+    .then((product) => {
+      res.status(200).json(product);
+    })
+    .catch((err) => {
+      res.status(500).json({ errMessage: "error here" });
+    });
+});
+
+// route.get("/account", (req, res) => {
+//   Product.getAll()
+//     .then((products) => {
+//       let newProducts = convertStrToArr(products);
+//       res.status(200).json(newProducts);
+//     })
+//     .catch((err) => {
+//       res.status(400).json({ errMessage: "invalid" });
+//     });
+// });
+
+// function convertStrToArr(arr) {
+//   const newArr = arr.map((array) => {
+//     let arrSize = array.size.split(",");
+//     let arrColor = array.color.split(",");
+//     return {
+//       ...array,
+//       size: arrSize,
+//       color: arrColor,
+//     };
+//   });
+//   return newArr;
+// }
 
 module.exports = route;
