@@ -37,7 +37,7 @@ route.put("/account/:id/:product_id", (req, res) => {
 route.get("/account/:id/:product_id", (req, res) => {
   const { id, product_id } = req.params;
 
-  Product.findAdminProject(id, product_id)
+  Product.findAdminProduct(id, product_id)
     .then((product) => {
       res.status(200).json(product);
     })
