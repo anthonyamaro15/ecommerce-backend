@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const express = require("express");
+const nodemailer = require("nodemailer");
 const User = require("../schemas/auth_schema");
 const {
   validateUser,
@@ -28,7 +29,7 @@ route.post("/register", validateUser, (req, res) => {
       credentials.password = hash;
       User.add(credentials)
         .then(([user]) => {
-          main(email);
+          //  main(email);
           res.status(201).json(user);
         })
         .catch((err) => {
@@ -59,13 +60,12 @@ route.post("/login", validateCredentials, (req, res) => {
 });
 
 // PUT /api/auth/edit/:id
-route.put("/edit/:id", validateId, (req, res) => {
+route.patch("/edit/:id", validateId, (req, res) => {
   const changes = req.body;
   const { id } = req.params;
 
   User.updateUser(id, changes)
     .then((user) => {
-      console.log("here ", user);
       res.status(200).json(user);
     })
     .catch((err) => {
@@ -75,4 +75,65 @@ route.put("/edit/:id", validateId, (req, res) => {
     });
 });
 
+// send email to reset password
+// PATCH /api/auth/forgot
+route.patch("/forgot", (req, res) => {
+  const { email } = req.body;
+
+  User.findBy({ email })
+    .then(([user]) => {
+      if (!user) {
+        res
+          .status(404)
+          .json({ errMessage: "user with this email does not exist" });
+      } else {
+        const token = jwt.sign({ user: user.email }, process.env.RESET_PASS, {
+          expiresIn: "40m",
+        });
+
+        async function main() {
+          // create reusable transporter object using the default SMTP transport
+          let transporter = nodemailer.createTransport({
+            service: "Gmail",
+            auth: {
+              user: process.env.GMAIL_USER, // generated ethereal user
+              pass: process.env.GMAIL_PASS, // generated ethereal password
+            },
+          });
+
+          // send mail with defined transport object
+          let info = await transporter.sendMail({
+            from: `${process.env.NAME} <${process.env.GMAIL_USER}>`, // sender address
+            to: email, // list of receivers
+            subject: "noreplay", // Subject line
+            text: "Account Activation Link", // plain text body
+            html: `
+                <h2>Please click on given link to resest your password</2>
+                <a>http://localhost:4000/api/auth/resetpassword/${token}</a>
+                `, // html body
+          });
+
+          console.log("Message sent: %s", info.messageId);
+          // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+        }
+
+        main();
+        res.status(200).json({ message: "email has been sent" });
+      }
+    })
+    .catch((err) => {
+      res
+        .status(500)
+        .json({ errMessage: "there was an error from the server." });
+    });
+});
+
 module.exports = route;
+
+// add property to database reseToken, allow nulls
+// make a put request
+// create new token, update that token to ressetToken from database
+// when user clicks in link redirect to a form to with 2 inputs to reset password
+// make a new put/patch request and compare the token from url to the one in the database
+// if it matches then update new password. hash new password and save it to dabase if it does not match then send an error
+//  when finish send a comfirmation email about the updated password
