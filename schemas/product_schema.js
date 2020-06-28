@@ -11,11 +11,6 @@ async function add(body, u_id) {
   return db("user_products").insert(userProduct, "id");
 }
 
-// function addSizes(body, product_id) {
-//    const newObj = {...body, product_id};
-//    return db('product_sizes').insert(newObj, 'id');
-// }
-
 function findProductById(id) {
   return db("product").where({ id }).first();
 }
@@ -32,14 +27,29 @@ async function updateProduct(u_id, p_id, changes) {
   return db("product as p").where("p.id", product.id).update(changes, "id");
 }
 
-function getAll() {
-  return db("product");
+async function getProducts() {
+  const women = await db("product as p").where("p.category", "women");
+  const men = await db("product as p").where("p.category", "men");
+
+  const separateProducts = {
+    women,
+    men,
+  };
+  return separateProducts;
+}
+
+async function removeProduct(u_id, p_id) {
+  const [product] = await findAdminProduct(u_id, p_id);
+  return db("product as p").where("p.id", product.id).del();
 }
 
 module.exports = {
   add,
-  getAll,
+
   //   addSizes
   updateProduct,
+  findProductById,
   findAdminProduct,
+  removeProduct,
+  getProducts,
 };

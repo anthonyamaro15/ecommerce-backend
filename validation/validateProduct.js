@@ -1,3 +1,5 @@
+const Product = require("../schemas/product_schema");
+
 function validateProduct(req, res, next) {
   const {
     product_name,
@@ -25,6 +27,18 @@ function validateProduct(req, res, next) {
   }
 }
 
+function validateProductId(req, res, next) {
+  const { id, product_id } = req.params;
+  Product.findAdminProduct(id, product_id).then((product) => {
+    if (product.length > 0) {
+      next();
+    } else {
+      res.status(404).json({ errMessage: "invalid product id" });
+    }
+  });
+}
+
 module.exports = {
   validateProduct,
+  validateProductId,
 };
