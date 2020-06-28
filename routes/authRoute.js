@@ -10,12 +10,8 @@ const {
 } = require("../validation/validateUser");
 const { generateToken } = require("../middlewares/generateToken");
 const main = require("../auth/sendEmail");
-const { response } = require("../api/server");
 
 const route = express.Router();
-
-// "email": "lisa@example.com",
-// "password": "lisa1"
 
 // POST /api/auth/register
 route.post("/register", validateUser, (req, res) => {
@@ -65,16 +61,37 @@ route.patch("/edit/:id", validateId, (req, res) => {
   const changes = req.body;
   const { id } = req.params;
 
-  User.updateUser(id, changes)
-    .then((user) => {
-      console.log("patching user ", user);
-      res.status(200).json(user);
-    })
-    .catch((err) => {
-      res
-        .status(500)
-        .json({ errMessage: "there was an error updating profile" });
-    });
+  if (changes.email) {
+    return res
+      .status("400")
+      .json({ errMessage: "you are not allow to change the email" });
+
+    // if password changes then we need to hash it again
+  } else if (changes.password) {
+    const hash = bcrypt.hashSync(changes.password, 8);
+    changes.password = hash;
+    User.updateUser(id, changes)
+      .then((user) => {
+        return res
+          .status(200)
+          .json({ message: "password has been updated successfully" });
+      })
+      .catch((err) => {
+        return res
+          .status(500)
+          .json({ errMessage: "there was an error updating profile" });
+      });
+  } else {
+    User.updateUser(id, changes)
+      .then((user) => {
+        res.status(200).json(user);
+      })
+      .catch((err) => {
+        res
+          .status(500)
+          .json({ errMessage: "there was an error updating profile" });
+      });
+  }
 });
 
 // send email to reset password
@@ -84,7 +101,6 @@ route.patch("/forgot", (req, res) => {
 
   User.findBy({ email })
     .then(([user]) => {
-      // console.log("===================> ", user);
       if (!user) {
         res
           .status(404)
@@ -95,7 +111,7 @@ route.patch("/forgot", (req, res) => {
         });
 
         const id = user.id;
-        //   console.log("new changese ", newChange);
+
         User.updateUser(id, { resetLink: token })
           .then((usr) => {
             async function main() {
@@ -116,15 +132,15 @@ route.patch("/forgot", (req, res) => {
                 text: "Account Activation Link", // plain text body
                 html: `
                 <h2>Please click on given link to resest your password</2>
-                <a>http://localhost:4000/api/auth/resetpassword/${token}</a>
+                <a href=${process.env.SECRET_URL}/api/auth/resetpassword/${token}>${process.env.SECRET_URL}/api/auth/resetpassword/${token}</a>
                 `, // html body
               });
 
               console.log("Message sent: %s", info.messageId);
               // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
             }
-            // main();
-            res.status(200).json({ message: "reset link has been updated." });
+            main();
+            res.status(200).json({ message: "reset link has been sent." });
           })
           .catch((err) => {
             res
@@ -140,16 +156,85 @@ route.patch("/forgot", (req, res) => {
     });
 });
 
+// PATCH /api/auth/resetpassword/:token
+// resets password and hashes password again
 route.patch("/resetpassword/:token", (req, res) => {
-  const { token } = req.params;
+  const resetLink = req.params.token;
+  let credentials = req.body;
+
+  if (resetLink) {
+    jwt.verify(resetLink, process.env.RESET_PASS, (error, decodedToken) => {
+      if (error) {
+        return res
+          .status(401)
+          .json({ errMessage: "Incorrect token or it is expired." });
+      }
+    });
+  }
+
+  // we check if the resetLink exist in database
+  User.findBy({ resetLink })
+    .then(([link]) => {
+      if (!link) {
+        res
+          .status(400)
+          .json({ errMessage: "user with this token does not exist" });
+      }
+
+      // we need to hash password again
+      const hash = bcrypt.hashSync(credentials.password, 8);
+      credentials.password = hash;
+
+      const id = link.id;
+      const obj = {
+        password: credentials.password,
+        resetLink: "",
+      };
+
+      // updating with new password
+      User.updateUser(id, obj)
+        .then((user) => {
+          async function main() {
+            // create reusable transporter object using the default SMTP transport
+            let transporter = nodemailer.createTransport({
+              service: "Gmail",
+              auth: {
+                user: process.env.GMAIL_USER, // generated ethereal user
+                pass: process.env.GMAIL_PASS, // generated ethereal password
+              },
+            });
+
+            // send mail with defined transport object
+            let info = await transporter.sendMail({
+              from: `${process.env.NAME} <${process.env.GMAIL_USER}>`, // sender address
+              to: link.email, // list of receivers
+              subject: "noreplay", // Subject line
+              text: "activities", // plain text body
+              html: `
+                <h2>thank you</2>
+                <p>your password was successfully updated</p>
+                `, // html body
+            });
+
+            console.log("Message sent: %s", info.messageId);
+            // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+          }
+          main();
+          res
+            .status(200)
+            .json({ message: "password has been updated successfully" });
+        })
+        .catch((err) => {
+          res
+            .status(500)
+            .json({ errMessage: "there was an error updation the passowrd" });
+        });
+    })
+    .catch((err) => {
+      res
+        .status(500)
+        .json({ errMessage: "there was an error finding the user" });
+    });
 });
 
 module.exports = route;
-
-// add property to database reseToken, allow nulls
-// make a put request
-// create new token, update that token to ressetToken from database
-// when user clicks in link redirect to a form to with 2 inputs to reset password
-// make a new put/patch request and compare the token from url to the one in the database
-// if it matches then update new password. hash new password and save it to dabase if it does not match then send an error
-//  when finish send a comfirmation email about the updated password
