@@ -97,6 +97,19 @@ exports.up = function (knex) {
           .onUpdate("CASCADE")
           .onDelete("CASCADE");
       })
+
+      // client table
+      .createTable("client", (table) => {
+        table.increments();
+        table.integer("quantity").notNullable();
+        table
+          .integer("product_id")
+          .unsigned()
+          .notNullable()
+          .references("product.id")
+          .onUpdate("CASCADE")
+          .onDelete("CASCADE");
+      })
   );
 };
 
