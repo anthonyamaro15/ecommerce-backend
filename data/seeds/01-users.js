@@ -10,6 +10,7 @@ exports.seed = function (knex) {
           last_name: "smith",
           email: "jon@example.com",
           password: "jon123",
+          resetLink: "",
         },
       ]);
     });

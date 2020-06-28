@@ -10,6 +10,7 @@ const {
 } = require("../validation/validateUser");
 const { generateToken } = require("../middlewares/generateToken");
 const main = require("../auth/sendEmail");
+const { response } = require("../api/server");
 
 const route = express.Router();
 
@@ -66,6 +67,7 @@ route.patch("/edit/:id", validateId, (req, res) => {
 
   User.updateUser(id, changes)
     .then((user) => {
+      console.log("patching user ", user);
       res.status(200).json(user);
     })
     .catch((err) => {
@@ -82,6 +84,7 @@ route.patch("/forgot", (req, res) => {
 
   User.findBy({ email })
     .then(([user]) => {
+      // console.log("===================> ", user);
       if (!user) {
         res
           .status(404)
@@ -91,34 +94,43 @@ route.patch("/forgot", (req, res) => {
           expiresIn: "40m",
         });
 
-        async function main() {
-          // create reusable transporter object using the default SMTP transport
-          let transporter = nodemailer.createTransport({
-            service: "Gmail",
-            auth: {
-              user: process.env.GMAIL_USER, // generated ethereal user
-              pass: process.env.GMAIL_PASS, // generated ethereal password
-            },
-          });
+        const id = user.id;
+        //   console.log("new changese ", newChange);
+        User.updateUser(id, { resetLink: token })
+          .then((usr) => {
+            async function main() {
+              // create reusable transporter object using the default SMTP transport
+              let transporter = nodemailer.createTransport({
+                service: "Gmail",
+                auth: {
+                  user: process.env.GMAIL_USER, // generated ethereal user
+                  pass: process.env.GMAIL_PASS, // generated ethereal password
+                },
+              });
 
-          // send mail with defined transport object
-          let info = await transporter.sendMail({
-            from: `${process.env.NAME} <${process.env.GMAIL_USER}>`, // sender address
-            to: email, // list of receivers
-            subject: "noreplay", // Subject line
-            text: "Account Activation Link", // plain text body
-            html: `
+              // send mail with defined transport object
+              let info = await transporter.sendMail({
+                from: `${process.env.NAME} <${process.env.GMAIL_USER}>`, // sender address
+                to: email, // list of receivers
+                subject: "noreplay", // Subject line
+                text: "Account Activation Link", // plain text body
+                html: `
                 <h2>Please click on given link to resest your password</2>
                 <a>http://localhost:4000/api/auth/resetpassword/${token}</a>
                 `, // html body
+              });
+
+              console.log("Message sent: %s", info.messageId);
+              // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+            }
+            // main();
+            res.status(200).json({ message: "reset link has been updated." });
+          })
+          .catch((err) => {
+            res
+              .status(500)
+              .json({ errMessage: "there was an error updating the link" });
           });
-
-          console.log("Message sent: %s", info.messageId);
-          // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
-        }
-
-        main();
-        res.status(200).json({ message: "email has been sent" });
       }
     })
     .catch((err) => {
@@ -126,6 +138,10 @@ route.patch("/forgot", (req, res) => {
         .status(500)
         .json({ errMessage: "there was an error from the server." });
     });
+});
+
+route.patch("/resetpassword/:token", (req, res) => {
+  const { token } = req.params;
 });
 
 module.exports = route;
