@@ -8,6 +8,7 @@ const {
   validateId,
 } = require("../validation/validateUser");
 const { generateToken } = require("../middlewares/generateToken");
+const main = require("../auth/sendEmail");
 
 const route = express.Router();
 
@@ -27,6 +28,7 @@ route.post("/register", validateUser, (req, res) => {
       credentials.password = hash;
       User.add(credentials)
         .then(([user]) => {
+          main(email);
           res.status(201).json(user);
         })
         .catch((err) => {

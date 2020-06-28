@@ -116,6 +116,7 @@ exports.up = function (knex) {
 exports.down = function (knex) {
   return (
     knex.schema
+      .dropTableIfExists("client")
       .dropTableIfExists("product_comments")
       .dropTableIfExists("user_products")
       //  .dropTableIfExists("product_color")
