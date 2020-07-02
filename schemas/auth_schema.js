@@ -27,5 +27,3 @@ module.exports = {
   updateUser,
   deleteUser,
 };
-
-//
